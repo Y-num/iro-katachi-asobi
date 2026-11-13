@@ -27,7 +27,12 @@
     { text: "ぴんぽーん！", emoji: "🎈" },
   ];
 
-  const EXTRA_ANIMALS = ["🐼", "🦊", "🐸", "🐢", "🐨", "🦁"];
+  const ANIMAL_SPECIES = {
+    chick: { img: "assets/animal-chick.png", evolvedImg: "assets/animal-chicken.png", label: "ひよこ" },
+    rabbit: { img: "assets/animal-rabbit.png", label: "うさぎ" },
+    cat: { img: "assets/animal-cat.png", label: "ねこ" },
+  };
+  const EXTRA_WALKERS = ["rabbit", "cat", "chick"];
   const FLOWERS = ["🌷", "🌼", "🌻", "🌸", "🌺"];
   const FLOWER_IMAGES = ["assets/flower-tulip.png", "assets/flower-daisy.png"];
   const FOODS = ["🍎", "🥕", "🍓", "🍪", "🍌"];
@@ -265,6 +270,43 @@
     return `<img src="assets/tree-full.png" class="tree-img stage-${stage}" alt="おおきなき" draggable="false" />`;
   }
 
+  // --- Watercolor-style Flyer SVGs ---
+  function createFlyerSvg(species) {
+    if (species === "bird") {
+      return `
+        <svg viewBox="0 0 64 64" class="flyer-svg" aria-hidden="true">
+          <ellipse cx="30" cy="36" rx="16" ry="12" fill="#7CC6FE" stroke="#4B9CD3" stroke-width="2.5" />
+          <circle cx="42" cy="26" r="10" fill="#7CC6FE" stroke="#4B9CD3" stroke-width="2.5" />
+          <path d="M51 25 L59 28 L51 31 Z" fill="#FFCA3A" stroke="#D9A314" stroke-width="1.5" stroke-linejoin="round" />
+          <path d="M16 32 Q6 24 10 38 Z" fill="#5CAEE6" stroke="#4B9CD3" stroke-width="2" />
+          <path d="M24 32 Q32 18 40 30 Q32 38 24 32 Z" fill="#B8E2FF" stroke="#4B9CD3" stroke-width="2" />
+          <circle cx="45" cy="24" r="2.2" fill="#3A2E25" />
+        </svg>
+      `;
+    }
+    if (species === "bee") {
+      return `
+        <svg viewBox="0 0 64 64" class="flyer-svg" aria-hidden="true">
+          <ellipse cx="26" cy="22" rx="9" ry="12" transform="rotate(-20 26 22)" fill="rgba(230,248,255,0.9)" stroke="#9CCAE6" stroke-width="2" />
+          <ellipse cx="36" cy="22" rx="9" ry="12" transform="rotate(20 36 22)" fill="rgba(230,248,255,0.9)" stroke="#9CCAE6" stroke-width="2" />
+          <ellipse cx="32" cy="38" rx="16" ry="12" fill="#FFD166" stroke="#6B4F2B" stroke-width="2.5" />
+          <path d="M26 27 V49 M35 27 V49" stroke="#6B4F2B" stroke-width="4" stroke-linecap="round" />
+          <circle cx="44" cy="36" r="2.2" fill="#3A2E25" />
+        </svg>
+      `;
+    }
+    // butterfly
+    return `
+      <svg viewBox="0 0 64 64" class="flyer-svg" aria-hidden="true">
+        <path d="M32 32 C16 12, 6 20, 14 34 C10 44, 22 50, 32 38 Z" fill="#FFA6C9" stroke="#E06C9F" stroke-width="2" />
+        <path d="M32 32 C48 12, 58 20, 50 34 C54 44, 42 50, 32 38 Z" fill="#A0E7E5" stroke="#57B8B5" stroke-width="2" />
+        <circle cx="20" cy="26" r="4" fill="#FFF3B0" opacity="0.85" />
+        <circle cx="44" cy="26" r="4" fill="#FFF3B0" opacity="0.85" />
+        <rect x="30" y="22" width="4" height="22" rx="2" fill="#6B5344" />
+      </svg>
+    `;
+  }
+
   // --- Living Garden Entities System ---
   function addGardenEntity(kind, emoji, x, y) {
     const id = state.nextEntityId++;
@@ -283,6 +325,16 @@
       img.alt = "おはな";
       img.draggable = false;
       inner.appendChild(img);
+    } else if (kind === "walker") {
+      const spec = ANIMAL_SPECIES[emoji] || ANIMAL_SPECIES.chick;
+      const img = document.createElement("img");
+      img.src = spec.img;
+      img.className = "animal-img growth-0";
+      img.alt = spec.label;
+      img.draggable = false;
+      inner.appendChild(img);
+    } else if (kind === "flyer") {
+      inner.innerHTML = createFlyerSvg(emoji);
     } else {
       inner.textContent = emoji;
     }
@@ -291,7 +343,9 @@
     const entity = {
       id,
       kind,
+      species: emoji,
       emoji,
+      growth: 0,
       x,
       y,
       tx: randRange(10, 88),
@@ -380,12 +434,45 @@
     addGardenEntity("flower", pickRandom(FLOWERS), x, y);
   }
 
+  function growAnimal(entity) {
+    if (!entity || entity.kind !== "walker" || entity.growth >= 3) return false;
+    entity.growth += 1;
+
+    const img = entity.innerEl.querySelector("img");
+    if (img) {
+      img.className = `animal-img growth-${entity.growth}`;
+      const spec = ANIMAL_SPECIES[entity.species];
+      if (spec && spec.evolvedImg && entity.growth >= 2) {
+        img.src = spec.evolvedImg;
+        img.alt = "にわとり";
+      }
+    }
+
+    if (entity.growth >= 3 && !entity.innerEl.querySelector(".crown-badge")) {
+      const crown = document.createElement("span");
+      crown.className = "crown-badge";
+      crown.textContent = "👑";
+      entity.innerEl.appendChild(crown);
+    }
+
+    triggerBounceClass(entity.el, "happy-jump");
+    const rect = entity.el.getBoundingClientRect();
+    if (rect.width > 0) {
+      spawnTapBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, {
+        count: 9,
+        symbols: ["✨", "🌟", "👑"],
+        color: "#FFCA3A",
+      });
+    }
+    return true;
+  }
+
   function initGarden() {
     gardenEntities.innerHTML = "";
     state.entities = [];
 
     // 最初からひよこが1匹お散歩＆雑草が2本生えている
-    addGardenEntity("walker", "🐣", 26, 12);
+    addGardenEntity("walker", "chick", 26, 12);
     spawnWeed();
     spawnWeed();
     updateGardenVisuals(0, false);
@@ -413,30 +500,36 @@
       if (score === 1) {
         spawnFlower();
       } else if (score === 2) {
-        addGardenEntity("walker", "🐰", 74, 14);
+        addGardenEntity("walker", "rabbit", 74, 14);
       } else if (score === 3) {
-        addGardenEntity("flyer", "🦋", 20, 68);
+        addGardenEntity("flyer", "butterfly", 20, 68);
       } else if (score === 4) {
-        addGardenEntity("walker", "🐱", 18, 16);
+        addGardenEntity("walker", "cat", 18, 16);
       } else if (score === 5) {
         toyRainbow.classList.remove("hidden");
         triggerBounceClass(toyRainbow, "boing");
       } else if (score === 6) {
-        addGardenEntity("flyer", "🐦", 80, 74);
+        addGardenEntity("flyer", "bird", 80, 74);
       } else if (score === 7) {
-        addGardenEntity("walker", "🐶", 65, 10);
+        addGardenEntity("walker", "rabbit", 65, 10);
       } else if (score === 8) {
         toyBalloon.classList.remove("hidden");
         triggerBounceClass(toyBalloon, "boing");
       } else if (score === 9) {
-        addGardenEntity("flyer", "🐝", 45, 58);
+        addGardenEntity("flyer", "bee", 45, 58);
       } else if (score >= 10) {
         const walkers = state.entities.filter((e) => e.kind === "walker");
-        if (score % 3 === 0 && walkers.length < 10) {
-          addGardenEntity("walker", pickRandom(EXTRA_ANIMALS), randRange(15, 85), randRange(8, 22));
+        if (score % 3 === 0 && walkers.length < 8) {
+          addGardenEntity("walker", pickRandom(EXTRA_WALKERS), randRange(15, 85), randRange(8, 22));
         } else {
           spawnFlower();
         }
+      }
+
+      // 正解するたびに既存の動物たちも成長していく！
+      const growable = state.entities.filter((e) => e.kind === "walker" && e.growth < 3);
+      if (growable.length > 0) {
+        growAnimal(pickRandom(growable));
       }
 
       // 時々新しい雑草も生えてくる
@@ -510,7 +603,7 @@
       const dist = Math.hypot(dx, dy);
 
       if (targetFood && dist < 4.5) {
-        // エサを食べる！
+        // エサを食べて成長する！
         const rect = entity.el.getBoundingClientRect();
         playEatSound();
         triggerBounceClass(entity.el, "happy-jump");
@@ -520,6 +613,7 @@
           color: "#FF595E",
         });
         removeGardenEntity(targetFood);
+        growAnimal(entity);
         entity.waitTimer = 0.7;
         entity.tx = randRange(10, 88);
         entity.ty = randRange(7, 25);
@@ -541,8 +635,8 @@
 
       entity.el.style.left = `${entity.x}%`;
       entity.el.style.bottom = `${entity.y}%`;
-      // 進行方向に合わせて向きを変える
-      entity.el.style.transform = dx < -0.2 ? "scaleX(1)" : "scaleX(-1)";
+      // 右向きイラストなので、右移動で通常・左移動で左右反転
+      entity.el.style.transform = dx >= -0.2 ? "scaleX(1)" : "scaleX(-1)";
     });
 
     requestAnimationFrame(tickGardenMovement);
