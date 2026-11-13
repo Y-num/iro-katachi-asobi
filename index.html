@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <div class="app-container" id="app-container">
@@ -65,14 +65,14 @@
       <div id="garden-entities" class="garden-entities">
         <!-- JSで生き物・お花・ざっそう・エサを動的に配置＆移動 -->
       </div>
-
-      <!-- おせわツールバー（みずやり・えさやり・ざっそうとり） -->
-      <div class="care-toolbar" aria-label="おせわ">
-        <button id="btn-water" class="care-btn care-water" type="button" aria-label="みずやり">💧</button>
-        <button id="btn-feed" class="care-btn care-feed" type="button" aria-label="えさやり">🍎</button>
-        <button id="btn-weed" class="care-btn care-weed" type="button" aria-label="ざっそうとり">🌿</button>
-      </div>
     </section>
+
+    <!-- おせわツールバー（おにわと重ならない独立バー） -->
+    <div class="care-toolbar" aria-label="おせわ">
+      <button id="btn-water" class="care-btn care-water" type="button" aria-label="みずやり">💧</button>
+      <button id="btn-feed" class="care-btn care-feed" type="button" aria-label="えさやり">🍎</button>
+      <button id="btn-weed" class="care-btn care-weed" type="button" aria-label="ざっそうとり">🌿</button>
+    </div>
 
     <!-- パズルあそびエリア（下部） -->
     <main id="screen-game" class="game-area">
@@ -94,6 +94,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
