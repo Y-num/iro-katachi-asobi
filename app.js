@@ -1,8 +1,6 @@
 (() => {
   "use strict";
 
-  const TOTAL_QUESTIONS = 5;
-
   const COLORS = [
     { id: "red", name: "あか", adj: "あかい", hex: "#FF595E", stroke: "#D9383E" },
     { id: "blue", name: "あお", adj: "あおい", hex: "#1982C4", stroke: "#105E91" },
@@ -33,8 +31,7 @@
   const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
 
   const state = {
-    mode: "color",
-    questionIndex: 0,
+    score: 0,
     soundEnabled: true,
     isTransitioning: false,
     currentQuestion: null,
@@ -42,30 +39,32 @@
   };
 
   // DOM Elements
-  const screenHome = document.getElementById("screen-home");
-  const screenGame = document.getElementById("screen-game");
-  const screenClear = document.getElementById("screen-clear");
-  const btnHome = document.getElementById("btn-home");
+  const btnReset = document.getElementById("btn-reset");
+  const scoreBadge = document.getElementById("score-badge");
+  const scoreCount = document.getElementById("score-count");
   const btnSound = document.getElementById("btn-sound");
   const iconSoundOn = document.getElementById("icon-sound-on");
   const iconSoundOff = document.getElementById("icon-sound-off");
-  const progressStars = document.getElementById("progress-stars");
   const btnSpeak = document.getElementById("btn-speak");
   const targetSlot = document.getElementById("target-slot");
   const targetVisual = document.getElementById("target-visual");
-  const treeStage = document.getElementById("tree-stage");
+  const gardenStage = document.getElementById("garden-stage");
   const treeVisual = document.getElementById("tree-visual");
   const treeSparkle = document.getElementById("tree-sparkle");
   const toySun = document.getElementById("toy-sun");
   const toyCloud = document.getElementById("toy-cloud");
-  const clearTreeVisual = document.getElementById("clear-tree-visual");
-  const clearTreeBtn = document.getElementById("clear-tree-btn");
-  const clearMedalBtn = document.getElementById("clear-medal-btn");
+  const toyRainbow = document.getElementById("toy-rainbow");
+  const toyBalloon = document.getElementById("toy-balloon");
+  const toyButterfly = document.getElementById("toy-butterfly");
+  const toyBird = document.getElementById("toy-bird");
+  const toyFlowerL = document.getElementById("toy-flower-l");
+  const toyFlowerR = document.getElementById("toy-flower-r");
+  const toyRabbit = document.getElementById("toy-rabbit");
+  const toyCat = document.getElementById("toy-cat");
+  const toyDog = document.getElementById("toy-dog");
   const choicesGrid = document.getElementById("choices-grid");
   const feedbackBubble = document.getElementById("feedback-bubble");
   const feedbackEmoji = document.getElementById("feedback-emoji");
-  const btnReplay = document.getElementById("btn-replay");
-  const btnChooseMode = document.getElementById("btn-choose-mode");
   const confettiCanvas = document.getElementById("confetti-canvas");
 
   // --- Audio (Web Audio API) ---
@@ -127,6 +126,16 @@
     playTone(1046.5, 0.35, "sine", 0.27, 0.16);
   }
 
+  function playMilestoneSound() {
+    const notes = [
+      { f: 523.25, d: 0.14, t: 0 },
+      { f: 659.25, d: 0.14, t: 0.1 },
+      { f: 783.99, d: 0.14, t: 0.2 },
+      { f: 1046.5, d: 0.4, t: 0.3 },
+    ];
+    notes.forEach((n) => playTone(n.f, n.d, "triangle", n.t, 0.18));
+  }
+
   function playGentleTryAgainSound() {
     playTone(329.63, 0.14, "sine", 0, 0.11);
     playTone(293.66, 0.18, "sine", 0.1, 0.11);
@@ -134,18 +143,6 @@
 
   function playTapSound() {
     playTone(440, 0.07, "sine", 0, 0.1);
-  }
-
-  function playFanfareSound() {
-    const notes = [
-      { f: 523.25, d: 0.15, t: 0 },
-      { f: 659.25, d: 0.15, t: 0.12 },
-      { f: 783.99, d: 0.15, t: 0.24 },
-      { f: 1046.5, d: 0.45, t: 0.36 },
-      { f: 783.99, d: 0.15, t: 0.56 },
-      { f: 1046.5, d: 0.55, t: 0.7 },
-    ];
-    notes.forEach((n) => playTone(n.f, n.d, "triangle", n.t, 0.18));
   }
 
   // --- Speech (Web Speech API) ---
@@ -294,14 +291,74 @@
     `;
   }
 
-  function renderTree(stage, animate = false) {
-    treeVisual.innerHTML = createTreeSvg(stage);
+  function revealGardenToy(el, isNew) {
+    if (!el) return;
+    const wasHidden = el.classList.contains("hidden");
+    el.classList.remove("hidden");
+    if (isNew && wasHidden) {
+      triggerBounceClass(el, "appear");
+    }
+  }
+
+  function updateGarden(score, animate = false) {
+    scoreCount.textContent = String(score);
+    if (animate) {
+      triggerBounceClass(scoreBadge, "pop");
+    }
+
+    // 木の成長（0〜5）
+    const treeStageNum = Math.min(5, score);
+    treeVisual.innerHTML = createTreeSvg(treeStageNum);
     if (animate) {
       treeVisual.classList.remove("grow-anim");
       treeSparkle.classList.remove("active");
       void treeVisual.offsetWidth;
       treeVisual.classList.add("grow-anim");
       treeSparkle.classList.add("active");
+    }
+
+    // スコアに応じておにわの要素が次々登場・変化
+    const unlocks = [
+      { min: 1, el: toyFlowerL },
+      { min: 2, el: toyFlowerR },
+      { min: 3, el: toyButterfly },
+      { min: 4, el: toyBird },
+      { min: 5, el: toyRainbow },
+      { min: 6, el: toyRabbit },
+      { min: 7, el: toyBalloon },
+      { min: 8, el: toyCat },
+      { min: 9, el: toyDog },
+    ];
+
+    unlocks.forEach(({ min, el }) => {
+      if (score >= min) {
+        revealGardenToy(el, animate && score === min);
+      } else {
+        el.classList.add("hidden");
+      }
+    });
+
+    // 空の変化（10問以降は昼→虹→夕方→夜空がループ！）
+    gardenStage.classList.remove("sky-rainbow", "sky-sunset", "sky-night");
+    if (score >= 10) {
+      const cycle = Math.floor((score - 10) / 3) % 4;
+      if (cycle === 0) {
+        gardenStage.classList.add("sky-sunset");
+        toySun.textContent = "🌇";
+      } else if (cycle === 1) {
+        gardenStage.classList.add("sky-night");
+        toySun.textContent = "🌙";
+      } else if (cycle === 2) {
+        gardenStage.classList.add("sky-rainbow");
+        toySun.textContent = "☀️";
+      } else {
+        toySun.textContent = "☀️";
+      }
+    } else if (score >= 5) {
+      gardenStage.classList.add("sky-rainbow");
+      toySun.textContent = "☀️";
+    } else {
+      toySun.textContent = "☀️";
     }
   }
 
@@ -366,7 +423,6 @@
       fallDown = false,
     } = options;
 
-    // 波紋リング
     const ripple = document.createElement("span");
     ripple.className = "tap-ripple";
     ripple.style.left = `${x}px`;
@@ -442,29 +498,11 @@
     }
   }
 
-  // --- Screen Navigation ---
-  function showScreen(target) {
-    [screenHome, screenGame, screenClear].forEach((el) => el.classList.remove("active"));
-    target.classList.add("active");
-
-    const isHome = target === screenHome;
-    btnHome.classList.toggle("hidden", isHome);
-    progressStars.classList.toggle("hidden", target !== screenGame);
-  }
-
-  function renderProgressStars() {
-    progressStars.innerHTML = "";
-    for (let i = 0; i < TOTAL_QUESTIONS; i++) {
-      const span = document.createElement("span");
-      span.className = "star-slot" + (i < state.questionIndex ? " filled" : "");
-      span.textContent = "★";
-      progressStars.appendChild(span);
-    }
-  }
-
-  // --- Question Generation ---
+  // --- Unified Question Generation (いろ / かたち / いろ＋かたち) ---
   function buildQuestion() {
-    if (state.mode === "color") {
+    const kind = pickRandom(["color", "shape", "mix"]);
+
+    if (kind === "color") {
       const targetColor = pickRandom(COLORS);
       const otherColors = shuffle(COLORS.filter((c) => c.id !== targetColor.id)).slice(0, 3);
       const choices = shuffle([targetColor, ...otherColors]).map((c) => ({
@@ -484,7 +522,7 @@
       };
     }
 
-    if (state.mode === "shape") {
+    if (kind === "shape") {
       const targetShape = pickRandom(SHAPES);
       const otherShapes = shuffle(SHAPES.filter((s) => s.id !== targetShape.id)).slice(0, 3);
       const baseColors = shuffle(COLORS);
@@ -505,7 +543,7 @@
       };
     }
 
-    // mode === "mix"
+    // mix
     const targetColor = pickRandom(COLORS);
     const targetShape = pickRandom(SHAPES);
     const altColor = pickRandom(COLORS.filter((c) => c.id !== targetColor.id));
@@ -556,7 +594,6 @@
     targetSlot.classList.remove("matched", "drag-over");
     feedbackBubble.classList.add("hidden");
 
-    renderProgressStars();
     const q = buildQuestion();
     state.currentQuestion = q;
 
@@ -695,28 +732,31 @@
         { withFace: true }
       );
 
-      playSuccessSound();
-      launchConfetti(35);
+      state.score += 1;
+      const isMilestone = state.score % 5 === 0;
+
+      if (isMilestone) {
+        playMilestoneSound();
+        launchConfetti(95);
+      } else {
+        playSuccessSound();
+        launchConfetti(35);
+      }
+
       if (x && y) {
         spawnTapBurst(x, y, { count: 10, symbols: ["🌟", "✨", "🎉"], color: choice.color.hex });
       }
 
       const praise = pickRandom(PRAISE_WORDS);
-      feedbackEmoji.textContent = praise.emoji;
+      feedbackEmoji.textContent = isMilestone ? "🎊" : praise.emoji;
       feedbackBubble.classList.remove("hidden");
       speak(praise.text);
 
-      state.questionIndex += 1;
-      renderProgressStars();
-      renderTree(state.questionIndex, true);
+      updateGarden(state.score, true);
 
       setTimeout(() => {
-        if (state.questionIndex >= TOTAL_QUESTIONS) {
-          showClearScreen();
-        } else {
-          loadNextQuestion();
-        }
-      }, 1350);
+        loadNextQuestion();
+      }, 1300);
     } else {
       playGentleTryAgainSound();
       triggerBounceClass(card, "wrong-shake");
@@ -724,26 +764,8 @@
     }
   }
 
-  function showClearScreen() {
-    clearTreeVisual.innerHTML = createTreeSvg(TOTAL_QUESTIONS);
-    showScreen(screenClear);
-    playFanfareSound();
-    launchConfetti(110);
-    speak("すごい！ きも おおきく そだったね！");
-  }
-
-  function startGame(mode) {
-    ensureAudioContext();
-    playTapSound();
-    state.mode = mode;
-    state.questionIndex = 0;
-    renderTree(0, false);
-    showScreen(screenGame);
-    loadNextQuestion();
-  }
-
   // --- Interactive Gimmicks ---
-  // 1. 背景の浮遊おもちゃタップ
+  // 背景の浮遊おもちゃタップ
   document.querySelectorAll(".bg-toy").forEach((toy, idx) => {
     toy.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
@@ -757,23 +779,7 @@
     });
   });
 
-  // 2. ホーム画面のカラフルドットタップ
-  document.querySelectorAll(".hero-dot").forEach((dot) => {
-    dot.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      ensureAudioContext();
-      const noteIdx = Number(dot.dataset.note || 0);
-      playPentatonicNote(noteIdx);
-      triggerBounceClass(dot, "boing");
-      spawnTapBurst(e.clientX, e.clientY, {
-        count: 8,
-        symbols: ["✨", "🎈", "⭐"],
-        color: dot.style.background,
-      });
-    });
-  });
-
-  // 3. お題枠タップでジャンプ＆音声再生
+  // お題枠タップでジャンプ＆音声再生
   targetSlot.addEventListener("pointerdown", (e) => {
     if (e.target === btnSpeak) return;
     e.stopPropagation();
@@ -789,18 +795,18 @@
     }
   });
 
-  // 4. そだつ木タップで揺れて葉っぱ・花・実が舞う
-  treeStage.addEventListener("pointerdown", (e) => {
-    if (e.target === toySun || e.target === toyCloud) return;
+  // おにわステージ（木）タップで揺れて葉っぱ・花・実が舞う
+  gardenStage.addEventListener("pointerdown", (e) => {
+    if (e.target.closest(".stage-toy")) return;
     e.stopPropagation();
     ensureAudioContext();
     triggerBounceClass(treeVisual, "wiggle-anim");
     playChimeArpeggio();
 
     const stageSymbols =
-      state.questionIndex >= 5
+      state.score >= 5
         ? ["🍎", "🍊", "🌸", "✨"]
-        : state.questionIndex >= 4
+        : state.score >= 4
         ? ["🌸", "🌼", "✨"]
         : ["🍃", "🌱", "✨"];
 
@@ -811,7 +817,7 @@
     });
   });
 
-  // 5. おひさまタップで回転＆光のシャワー
+  // おひさま／おつきさまタップ
   toySun.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
     ensureAudioContext();
@@ -819,16 +825,16 @@
     playChimeArpeggio();
     spawnTapBurst(e.clientX, e.clientY, {
       count: 10,
-      symbols: ["☀️", "✨", "🌟"],
+      symbols: [toySun.textContent, "✨", "🌟"],
       color: "#FFCA3A",
     });
   });
 
-  // 6. くもタップで雨粒シャワー＆木が喜ぶ
+  // くもタップで雨粒シャワー＆木が喜ぶ
   toyCloud.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
     ensureAudioContext();
-    triggerBounceClass(toyCloud, "puff");
+    triggerBounceClass(toyCloud, "boing");
     triggerBounceClass(treeVisual, "wiggle-anim");
     playRainSound();
     spawnTapBurst(e.clientX, e.clientY + 12, {
@@ -839,35 +845,36 @@
     });
   });
 
-  // 7. クリア画面の木とメダルタップ
-  clearTreeBtn.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
-    triggerBounceClass(clearTreeBtn, "boing");
-    playChimeArpeggio();
-    spawnTapBurst(e.clientX, e.clientY, {
-      count: 10,
-      symbols: ["🍎", "🍊", "🌸", "✨"],
-      color: "#8AC926",
+  // おにわに登場した仲間・アイテムのタップ反応
+  const gardenToyEffects = [
+    { el: toyRainbow, symbols: ["🌈", "✨", "💛", "💙"], color: "#FFCA3A", note: 5 },
+    { el: toyBalloon, symbols: ["🎈", "🎉", "✨"], color: "#FF595E", note: 4 },
+    { el: toyButterfly, symbols: ["🦋", "🌸", "✨"], color: "#9B5DE5", note: 3 },
+    { el: toyBird, symbols: ["🐦", "🎵", "🎶"], color: "#1982C4", note: 2 },
+    { el: toyFlowerL, symbols: ["🌷", "🌸", "✨"], color: "#FF9EBB", note: 1 },
+    { el: toyFlowerR, symbols: ["🌼", "🌻", "✨"], color: "#FFCA3A", note: 0 },
+    { el: toyRabbit, symbols: ["🐰", "🥕", "♥"], color: "#FF924C", note: 2 },
+    { el: toyCat, symbols: ["🐱", "🐾", "♥"], color: "#FFCA3A", note: 4 },
+    { el: toyDog, symbols: ["🐶", "🦴", "♥"], color: "#8AC926", note: 3 },
+  ];
+
+  gardenToyEffects.forEach(({ el, symbols, color, note }) => {
+    el.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      ensureAudioContext();
+      playPentatonicNote(note);
+      triggerBounceClass(el, "boing");
+      spawnTapBurst(e.clientX, e.clientY, {
+        count: 8,
+        symbols,
+        color,
+      });
     });
   });
 
-  clearMedalBtn.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
-    triggerBounceClass(clearMedalBtn, "boing");
-    playSuccessSound();
-    launchConfetti(45);
-    spawnTapBurst(e.clientX, e.clientY, {
-      count: 10,
-      symbols: ["🏅", "🌟", "✨"],
-      color: "#FFCA3A",
-    });
-  });
-
-  // 8. 画面のどこ（余白）をタップしても音とキラキラが出る！
+  // 画面のどこ（余白）をタップしても音とキラキラが出る！
   document.addEventListener("pointerdown", (e) => {
-    if (!(e.target instanceof Element) || e.target.closest("button, .target-slot, .tree-stage")) return;
+    if (!(e.target instanceof Element) || e.target.closest("button, .target-slot, .garden-stage")) return;
     ensureAudioContext();
     playPentatonicNote(Math.floor(Math.random() * PENTATONIC.length));
     spawnTapBurst(e.clientX, e.clientY, {
@@ -876,19 +883,13 @@
     });
   });
 
-  // --- Main Navigation Listeners ---
-  document.querySelectorAll(".mode-card").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      startGame(btn.dataset.mode);
-    });
-  });
-
-  btnHome.addEventListener("click", () => {
+  // --- Top Bar Listeners ---
+  btnReset.addEventListener("click", () => {
+    ensureAudioContext();
     playTapSound();
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    showScreen(screenHome);
+    state.score = 0;
+    updateGarden(0, false);
+    loadNextQuestion();
   });
 
   btnSound.addEventListener("click", () => {
@@ -913,12 +914,7 @@
     }
   });
 
-  btnReplay.addEventListener("click", () => {
-    startGame(state.mode);
-  });
-
-  btnChooseMode.addEventListener("click", () => {
-    playTapSound();
-    showScreen(screenHome);
-  });
+  // --- Start immediately ---
+  updateGarden(0, false);
+  loadNextQuestion();
 })();
