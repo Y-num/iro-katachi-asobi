@@ -52,6 +52,9 @@
   const questionText = document.getElementById("question-text");
   const targetSlot = document.getElementById("target-slot");
   const targetVisual = document.getElementById("target-visual");
+  const treeVisual = document.getElementById("tree-visual");
+  const treeSparkle = document.getElementById("tree-sparkle");
+  const clearTreeVisual = document.getElementById("clear-tree-visual");
   const choicesGrid = document.getElementById("choices-grid");
   const feedbackBubble = document.getElementById("feedback-bubble");
   const feedbackEmoji = document.getElementById("feedback-emoji");
@@ -190,6 +193,97 @@
         ${faceMarkup}
       </svg>
     `;
+  }
+
+  // --- Growing Tree SVG (0..5 stages) ---
+  function createTreeSvg(stage) {
+    const soil = `<ellipse cx="60" cy="108" rx="44" ry="10" fill="#B6895B" />`;
+    let content = "";
+
+    if (stage === 0) {
+      content = `
+        <ellipse cx="60" cy="96" rx="11" ry="13" fill="#D99B52" stroke="#9C6631" stroke-width="3" />
+        <path d="M56 91 Q60 87 64 91" fill="none" stroke="#FFFDF5" stroke-width="2.5" stroke-linecap="round" />
+      `;
+    } else if (stage === 1) {
+      content = `
+        <path d="M60 105 Q60 84 60 74" fill="none" stroke="#6FA51B" stroke-width="6" stroke-linecap="round" />
+        <path d="M60 78 Q40 62 34 74 Q42 88 60 80 Z" fill="#8AC926" stroke="#669B14" stroke-width="3" />
+        <path d="M60 76 Q80 60 86 72 Q78 86 60 78 Z" fill="#A7E048" stroke="#669B14" stroke-width="3" />
+      `;
+    } else if (stage === 2) {
+      content = `
+        <path d="M55 106 L56 68 L64 68 L65 106 Z" fill="#9C6631" stroke="#75491F" stroke-width="3" stroke-linejoin="round" />
+        <circle cx="44" cy="60" r="18" fill="#8AC926" stroke="#669B14" stroke-width="3" />
+        <circle cx="76" cy="60" r="18" fill="#8AC926" stroke="#669B14" stroke-width="3" />
+        <circle cx="60" cy="46" r="22" fill="#A7E048" stroke="#669B14" stroke-width="3" />
+      `;
+    } else if (stage === 3) {
+      content = `
+        <path d="M52 106 L55 58 L65 58 L68 106 Z" fill="#9C6631" stroke="#75491F" stroke-width="3" stroke-linejoin="round" />
+        <circle cx="38" cy="54" r="22" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="82" cy="54" r="22" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="60" cy="36" r="26" fill="#8AC926" stroke="#538A12" stroke-width="3" />
+        <circle cx="48" cy="48" r="18" fill="#A7E048" />
+        <circle cx="72" cy="48" r="18" fill="#A7E048" />
+      `;
+    } else if (stage === 4) {
+      content = `
+        <path d="M51 106 L55 54 L65 54 L69 106 Z" fill="#9C6631" stroke="#75491F" stroke-width="3" stroke-linejoin="round" />
+        <circle cx="36" cy="52" r="23" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="84" cy="52" r="23" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="60" cy="34" r="28" fill="#8AC926" stroke="#538A12" stroke-width="3" />
+        <circle cx="46" cy="48" r="18" fill="#A7E048" />
+        <circle cx="74" cy="48" r="18" fill="#A7E048" />
+        <!-- おはな -->
+        <circle cx="40" cy="42" r="7" fill="#FF9EBB" stroke="#FF595E" stroke-width="2" />
+        <circle cx="40" cy="42" r="2.5" fill="#FFCA3A" />
+        <circle cx="76" cy="38" r="7" fill="#FF9EBB" stroke="#FF595E" stroke-width="2" />
+        <circle cx="76" cy="38" r="2.5" fill="#FFCA3A" />
+        <circle cx="58" cy="24" r="7" fill="#FFF07C" stroke="#FF924C" stroke-width="2" />
+        <circle cx="58" cy="24" r="2.5" fill="#FF595E" />
+        <circle cx="62" cy="54" r="6" fill="#FF9EBB" stroke="#FF595E" stroke-width="2" />
+        <circle cx="62" cy="54" r="2" fill="#FFCA3A" />
+      `;
+    } else {
+      content = `
+        <path d="M50 106 L54 52 L66 52 L70 106 Z" fill="#9C6631" stroke="#75491F" stroke-width="3" stroke-linejoin="round" />
+        <circle cx="35" cy="52" r="24" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="85" cy="52" r="24" fill="#70B81B" stroke="#538A12" stroke-width="3" />
+        <circle cx="60" cy="32" r="29" fill="#8AC926" stroke="#538A12" stroke-width="3" />
+        <circle cx="46" cy="46" r="19" fill="#A7E048" />
+        <circle cx="74" cy="46" r="19" fill="#A7E048" />
+        <!-- りんご & みかん & おはな -->
+        <circle cx="38" cy="48" r="7.5" fill="#FF595E" stroke="#D9383E" stroke-width="2" />
+        <circle cx="80" cy="46" r="7.5" fill="#FF595E" stroke="#D9383E" stroke-width="2" />
+        <circle cx="60" cy="26" r="7.5" fill="#FF924C" stroke="#D66B27" stroke-width="2" />
+        <circle cx="54" cy="52" r="6.5" fill="#FFCA3A" stroke="#D9A314" stroke-width="2" />
+        <circle cx="70" cy="28" r="5" fill="#FF9EBB" />
+        <circle cx="42" cy="28" r="5" fill="#FFF07C" />
+        <!-- かわいいお顔 -->
+        <circle cx="55" cy="76" r="2.2" fill="#3A2E25" />
+        <circle cx="65" cy="76" r="2.2" fill="#3A2E25" />
+        <path d="M57 82 Q60 85 63 82" fill="none" stroke="#3A2E25" stroke-width="2" stroke-linecap="round" />
+      `;
+    }
+
+    return `
+      <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
+        ${soil}
+        ${content}
+      </svg>
+    `;
+  }
+
+  function renderTree(stage, animate = false) {
+    treeVisual.innerHTML = createTreeSvg(stage);
+    if (animate) {
+      treeVisual.classList.remove("grow-anim");
+      treeSparkle.classList.remove("active");
+      void treeVisual.offsetWidth;
+      treeVisual.classList.add("grow-anim");
+      treeSparkle.classList.add("active");
+    }
   }
 
   // --- Utilities ---
@@ -521,6 +615,7 @@
 
       state.questionIndex += 1;
       renderProgressStars();
+      renderTree(state.questionIndex, true);
 
       setTimeout(() => {
         if (state.questionIndex >= TOTAL_QUESTIONS) {
@@ -539,10 +634,11 @@
   }
 
   function showClearScreen() {
+    clearTreeVisual.innerHTML = createTreeSvg(TOTAL_QUESTIONS);
     showScreen(screenClear);
     playFanfareSound();
     launchConfetti(110);
-    speak("すごい！ ぜんぶ できたね！");
+    speak("すごい！ きも おおきく そだったね！");
   }
 
   function startGame(mode) {
@@ -550,6 +646,7 @@
     playTapSound();
     state.mode = mode;
     state.questionIndex = 0;
+    renderTree(0, false);
     showScreen(screenGame);
     loadNextQuestion();
   }

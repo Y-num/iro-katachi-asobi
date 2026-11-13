@@ -113,9 +113,17 @@
           <span id="question-text" class="question-text">あか は どれかな？</span>
         </button>
 
-        <!-- お題見本 / ドロップターゲット -->
-        <div id="target-slot" class="target-slot" aria-live="polite">
-          <div id="target-visual" class="target-visual"></div>
+        <div class="stage-row">
+          <!-- お題見本 / ドロップターゲット -->
+          <div id="target-slot" class="target-slot" aria-live="polite">
+            <div id="target-visual" class="target-visual"></div>
+          </div>
+
+          <!-- 正解すると育つ木 -->
+          <div id="tree-stage" class="tree-stage" aria-label="そだつ き">
+            <div id="tree-visual" class="tree-visual"></div>
+            <div id="tree-sparkle" class="tree-sparkle" aria-hidden="true">✨</div>
+          </div>
         </div>
       </div>
 
@@ -134,16 +142,19 @@
     <!-- クリア（ごほうび）画面 -->
     <main id="screen-clear" class="screen">
       <div class="clear-card">
-        <div class="medal-wrap" aria-hidden="true">
-          <svg viewBox="0 0 120 120" width="130" height="130" class="medal-svg">
-            <path d="M36 72 L24 112 L46 102 L56 116 L60 76 Z" fill="#FF595E" />
-            <path d="M84 72 L96 112 L74 102 L64 116 L60 76 Z" fill="#1982C4" />
-            <circle cx="60" cy="48" r="36" fill="#FFCA3A" stroke="#FF924C" stroke-width="5" />
-            <path d="M60 22 L67 38 L84 40 L71 51 L75 68 L60 59 L45 68 L49 51 L36 40 L53 38 Z" fill="#FFFDF5" />
-          </svg>
+        <div class="clear-celebration">
+          <div id="clear-tree-visual" class="clear-tree-visual" aria-hidden="true"></div>
+          <div class="medal-wrap" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="96" height="96" class="medal-svg">
+              <path d="M36 72 L24 112 L46 102 L56 116 L60 76 Z" fill="#FF595E" />
+              <path d="M84 72 L96 112 L74 102 L64 116 L60 76 Z" fill="#1982C4" />
+              <circle cx="60" cy="48" r="36" fill="#FFCA3A" stroke="#FF924C" stroke-width="5" />
+              <path d="M60 22 L67 38 L84 40 L71 51 L75 68 L60 59 L45 68 L49 51 L36 40 L53 38 Z" fill="#FFFDF5" />
+            </svg>
+          </div>
         </div>
         <h2 class="clear-title">すごい！ ぜんぶ できたね！</h2>
-        <p class="clear-subtitle">キラキラ メダルを ゲットしたよ！</p>
+        <p class="clear-subtitle">きが おおきく そだって メダルも ゲット！</p>
         <div class="clear-actions">
           <button id="btn-replay" class="action-btn primary" type="button">もういちど あそぶ</button>
           <button id="btn-choose-mode" class="action-btn secondary" type="button">ちがう あそびを する</button>
