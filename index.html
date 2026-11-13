@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>いろと かたち あそび</title>
+  <title>いろと かたち おにわあそび</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <div class="app-container" id="app-container">
@@ -17,7 +17,6 @@
       <button class="bg-toy bg-blob" type="button" tabindex="-1"></button>
       <button class="bg-toy bg-star-toy" type="button" tabindex="-1">★</button>
       <button class="bg-toy bg-heart-toy" type="button" tabindex="-1">♥</button>
-      <button class="bg-toy bg-note-toy" type="button" tabindex="-1">♪</button>
     </div>
 
     <!-- タップエフェクト＆紙吹雪用キャンバス -->
@@ -46,55 +45,55 @@
       </button>
     </header>
 
-    <!-- メインのあそび画面（ずっと遊べるエンドレス仕様） -->
-    <main id="screen-game" class="screen active">
-      <div class="question-area">
-        <div class="stage-row">
-          <!-- お題見本 / ドロップターゲット -->
-          <div id="target-slot" class="target-slot" role="button" tabindex="0" aria-label="おだい">
-            <div id="target-visual" class="target-visual"></div>
-            <button id="btn-speak" class="mini-speak-btn" type="button" aria-label="もういちど きく">🔊</button>
-          </div>
+    <!-- 広いおにわワールド（上部でみんなが生活して動き回る） -->
+    <section id="garden-world" class="garden-world" aria-label="おにわの せかい">
+      <!-- 空のオブジェクト -->
+      <button id="toy-sun" class="sky-item toy-sun" type="button" aria-label="おひさま">☀️</button>
+      <button id="toy-cloud-1" class="sky-item toy-cloud-1" type="button" aria-label="くも">☁️</button>
+      <button id="toy-cloud-2" class="sky-item toy-cloud-2" type="button" aria-label="くも">☁️</button>
+      <button id="toy-rainbow" class="sky-item toy-rainbow hidden" type="button" aria-label="にじ">🌈</button>
+      <button id="toy-balloon" class="sky-item toy-balloon hidden" type="button" aria-label="ふうせん">🎈</button>
 
-          <!-- 正解するといろんな変化が起きるおにわステージ -->
-          <div id="garden-stage" class="garden-stage" role="button" tabindex="0" aria-label="おにわ">
-            <!-- 空のギミック -->
-            <button id="toy-sun" class="stage-toy toy-sun" type="button" aria-label="おひさま">☀️</button>
-            <button id="toy-cloud" class="stage-toy toy-cloud" type="button" aria-label="くも">☁️</button>
-            <button id="toy-rainbow" class="stage-toy toy-rainbow hidden" type="button" aria-label="にじ">🌈</button>
-            <button id="toy-balloon" class="stage-toy toy-balloon hidden" type="button" aria-label="ききゅう">🎈</button>
+      <!-- おにわの木（中央） -->
+      <div id="tree-wrap" class="tree-wrap" role="button" tabindex="0" aria-label="き">
+        <div id="tree-visual" class="tree-visual"></div>
+        <div id="tree-sparkle" class="tree-sparkle" aria-hidden="true">✨</div>
+      </div>
 
-            <!-- 飛ぶいきもの -->
-            <button id="toy-butterfly" class="stage-toy toy-butterfly hidden" type="button" aria-label="ちょうちょ">🦋</button>
-            <button id="toy-bird" class="stage-toy toy-bird hidden" type="button" aria-label="ことり">🐦</button>
+      <!-- 地面の草・お花・エサ・ざっそう・動く生き物レイヤー -->
+      <div class="ground-hill" aria-hidden="true"></div>
+      <div id="garden-entities" class="garden-entities">
+        <!-- JSで生き物・お花・ざっそう・エサを動的に配置＆移動 -->
+      </div>
 
-            <!-- そだつ木 -->
-            <div id="tree-visual" class="tree-visual"></div>
+      <!-- おせわツールバー（みずやり・えさやり・ざっそうとり） -->
+      <div class="care-toolbar" aria-label="おせわ">
+        <button id="btn-water" class="care-btn care-water" type="button" aria-label="みずやり">💧</button>
+        <button id="btn-feed" class="care-btn care-feed" type="button" aria-label="えさやり">🍎</button>
+        <button id="btn-weed" class="care-btn care-weed" type="button" aria-label="ざっそうとり">🌿</button>
+      </div>
+    </section>
 
-            <!-- 地面のなかま・おはな -->
-            <button id="toy-flower-l" class="stage-toy toy-flower-l hidden" type="button" aria-label="おはな">🌷</button>
-            <button id="toy-flower-r" class="stage-toy toy-flower-r hidden" type="button" aria-label="おはな">🌼</button>
-            <button id="toy-rabbit" class="stage-toy toy-rabbit hidden" type="button" aria-label="うさぎ">🐰</button>
-            <button id="toy-cat" class="stage-toy toy-cat hidden" type="button" aria-label="ねこ">🐱</button>
-            <button id="toy-dog" class="stage-toy toy-dog hidden" type="button" aria-label="いぬ">🐶</button>
+    <!-- パズルあそびエリア（下部） -->
+    <main id="screen-game" class="game-area">
+      <!-- お題枠 -->
+      <div id="target-slot" class="target-slot" role="button" tabindex="0" aria-label="おだい">
+        <div id="target-visual" class="target-visual"></div>
+        <button id="btn-speak" class="mini-speak-btn" type="button" aria-label="もういちど きく">🔊</button>
+      </div>
 
-            <div id="tree-sparkle" class="tree-sparkle" aria-hidden="true">✨</div>
-          </div>
-        </div>
+      <!-- 選択肢カード（2x2） -->
+      <div id="choices-grid" class="choices-grid">
+        <!-- JSでカードを生成 -->
       </div>
 
       <!-- ビジュアルほめスタンプ -->
       <div id="feedback-bubble" class="feedback-bubble hidden" aria-hidden="true">
         <span id="feedback-emoji" class="feedback-emoji">🌟</span>
       </div>
-
-      <!-- 選択肢カード -->
-      <div id="choices-grid" class="choices-grid">
-        <!-- JSでカードを生成 -->
-      </div>
     </main>
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

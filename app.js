@@ -27,7 +27,9 @@
     { text: "ぴんぽーん！", emoji: "🎈" },
   ];
 
-  // どう弾いても心地よいペンタトニックスケール（ド・レ・ミ・ソ・ラ・ド）
+  const EXTRA_ANIMALS = ["🐼", "🦊", "🐸", "🐢", "🐨", "🦁"];
+  const FLOWERS = ["🌷", "🌼", "🌻", "🌸", "🌺"];
+  const FOODS = ["🍎", "🥕", "🍓", "🍪", "🍌"];
   const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
 
   const state = {
@@ -36,6 +38,8 @@
     isTransitioning: false,
     currentQuestion: null,
     audioCtx: null,
+    entities: [], // { id, kind: 'walker'|'flyer'|'flower'|'weed'|'food', emoji, x, y, vx, vy, tx, ty, el, innerEl, waitTimer }
+    nextEntityId: 1,
   };
 
   // DOM Elements
@@ -48,20 +52,19 @@
   const btnSpeak = document.getElementById("btn-speak");
   const targetSlot = document.getElementById("target-slot");
   const targetVisual = document.getElementById("target-visual");
-  const gardenStage = document.getElementById("garden-stage");
+  const gardenWorld = document.getElementById("garden-world");
+  const gardenEntities = document.getElementById("garden-entities");
+  const treeWrap = document.getElementById("tree-wrap");
   const treeVisual = document.getElementById("tree-visual");
   const treeSparkle = document.getElementById("tree-sparkle");
   const toySun = document.getElementById("toy-sun");
-  const toyCloud = document.getElementById("toy-cloud");
+  const toyCloud1 = document.getElementById("toy-cloud-1");
+  const toyCloud2 = document.getElementById("toy-cloud-2");
   const toyRainbow = document.getElementById("toy-rainbow");
   const toyBalloon = document.getElementById("toy-balloon");
-  const toyButterfly = document.getElementById("toy-butterfly");
-  const toyBird = document.getElementById("toy-bird");
-  const toyFlowerL = document.getElementById("toy-flower-l");
-  const toyFlowerR = document.getElementById("toy-flower-r");
-  const toyRabbit = document.getElementById("toy-rabbit");
-  const toyCat = document.getElementById("toy-cat");
-  const toyDog = document.getElementById("toy-dog");
+  const btnWater = document.getElementById("btn-water");
+  const btnFeed = document.getElementById("btn-feed");
+  const btnWeed = document.getElementById("btn-weed");
   const choicesGrid = document.getElementById("choices-grid");
   const feedbackBubble = document.getElementById("feedback-bubble");
   const feedbackEmoji = document.getElementById("feedback-emoji");
@@ -80,7 +83,7 @@
     }
   }
 
-  function playTone(freq, duration, type = "sine", delay = 0, volume = 0.15) {
+  function playTone(freq, duration, type = "sine", delay = 0, volume = 0.14) {
     if (!state.soundEnabled) return;
     ensureAudioContext();
     const ctx = state.audioCtx;
@@ -103,8 +106,7 @@
   }
 
   function playPentatonicNote(index) {
-    const freq = PENTATONIC[index % PENTATONIC.length];
-    playTone(freq, 0.22, "triangle", 0, 0.14);
+    playTone(PENTATONIC[index % PENTATONIC.length], 0.22, "triangle", 0, 0.13);
   }
 
   function playChimeArpeggio() {
@@ -113,10 +115,21 @@
     playTone(1046.5, 0.25, "sine", 0.14, 0.13);
   }
 
-  function playRainSound() {
-    playTone(880, 0.08, "sine", 0, 0.08);
-    playTone(783.99, 0.08, "sine", 0.08, 0.08);
-    playTone(987.77, 0.1, "sine", 0.16, 0.08);
+  function playWaterSound() {
+    [987.77, 880, 1046.5, 783.99, 1174.66].forEach((f, i) => {
+      playTone(f, 0.1, "sine", i * 0.06, 0.09);
+    });
+  }
+
+  function playEatSound() {
+    playTone(440, 0.08, "triangle", 0, 0.12);
+    playTone(587.33, 0.1, "triangle", 0.08, 0.13);
+    playTone(783.99, 0.15, "sine", 0.16, 0.13);
+  }
+
+  function playPluckSound() {
+    playTone(392, 0.07, "triangle", 0, 0.12);
+    playTone(659.25, 0.12, "sine", 0.05, 0.14);
   }
 
   function playSuccessSound() {
@@ -155,9 +168,31 @@
       utter.rate = 0.92;
       utter.pitch = 1.15;
       window.speechSynthesis.speak(utter);
-    } catch (_) {
-      // 音声合成非対応環境でもゲーム進行に影響させない
+    } catch (_) {}
+  }
+
+  // --- Utilities ---
+  function shuffle(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
+    return arr;
+  }
+
+  function pickRandom(array) {
+    return array[Math.floor(Math.random() * array.length)];
+  }
+
+  function randRange(min, max) {
+    return min + Math.random() * (max - min);
+  }
+
+  function triggerBounceClass(el, className) {
+    el.classList.remove(className);
+    void el.offsetWidth;
+    el.classList.add(className);
   }
 
   // --- SVG Shape Generator ---
@@ -181,12 +216,7 @@
   }
 
   function createShapeSvg(shapeId, fill, stroke, options = {}) {
-    const {
-      isSilhouette = false,
-      withFace = true,
-      dashed = false,
-    } = options;
-
+    const { isSilhouette = false, withFace = true, dashed = false } = options;
     const shapeMarkup = getShapePath(shapeId);
     const fillAttr = isSilhouette ? "rgba(210, 198, 180, 0.35)" : fill;
     const strokeAttr = isSilhouette ? "#B8AA96" : stroke;
@@ -291,16 +321,124 @@
     `;
   }
 
-  function revealGardenToy(el, isNew) {
-    if (!el) return;
-    const wasHidden = el.classList.contains("hidden");
-    el.classList.remove("hidden");
-    if (isNew && wasHidden) {
-      triggerBounceClass(el, "appear");
-    }
+  // --- Living Garden Entities System ---
+  function addGardenEntity(kind, emoji, x, y) {
+    const id = state.nextEntityId++;
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `entity-item entity-${kind}`;
+    el.style.left = `${x}%`;
+    el.style.bottom = `${y}%`;
+
+    const inner = document.createElement("span");
+    inner.className = "entity-inner";
+    inner.textContent = emoji;
+    el.appendChild(inner);
+
+    const entity = {
+      id,
+      kind,
+      emoji,
+      x,
+      y,
+      tx: randRange(10, 88),
+      ty: kind === "flyer" ? randRange(48, 86) : randRange(7, 26),
+      vx: 0,
+      vy: 0,
+      waitTimer: 0,
+      el,
+      innerEl: inner,
+    };
+
+    el.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      ensureAudioContext();
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      if (kind === "weed") {
+        pluckWeed(entity, cx, cy);
+      } else if (kind === "flower") {
+        playPentatonicNote(id);
+        triggerBounceClass(el, "boing");
+        spawnTapBurst(cx, cy, { count: 7, symbols: [emoji, "✨", "💛"], color: "#FF9EBB" });
+      } else if (kind === "food") {
+        playTapSound();
+        triggerBounceClass(el, "boing");
+        spawnTapBurst(cx, cy, { count: 6, symbols: ["✨", "😋"] });
+      } else {
+        // walker or flyer
+        playPentatonicNote(id);
+        triggerBounceClass(el, "happy-jump");
+        spawnTapBurst(cx, cy, { count: 8, symbols: ["♥", "✨", "🎵"], color: "#FF595E" });
+      }
+    });
+
+    gardenEntities.appendChild(el);
+    state.entities.push(entity);
+    return entity;
   }
 
-  function updateGarden(score, animate = false) {
+  function removeGardenEntity(entity) {
+    entity.el.remove();
+    state.entities = state.entities.filter((item) => item.id !== entity.id);
+  }
+
+  function pluckWeed(weedEntity, cx, cy) {
+    if (weedEntity.plucked) return;
+    weedEntity.plucked = true;
+    playPluckSound();
+    weedEntity.el.classList.add("plucked");
+    spawnTapBurst(cx, cy, { count: 9, symbols: ["✨", "🌸", "⭐"], color: "#8AC926" });
+
+    const wx = weedEntity.x;
+    const wy = weedEntity.y;
+    setTimeout(() => {
+      removeGardenEntity(weedEntity);
+      // 雑草を抜いた跡にお花が咲く！
+      const flowers = state.entities.filter((e) => e.kind === "flower");
+      if (flowers.length < 14) {
+        addGardenEntity("flower", pickRandom(FLOWERS), wx, wy);
+      }
+      updateWeedHint();
+    }, 320);
+  }
+
+  function updateWeedHint() {
+    const weeds = state.entities.filter((e) => e.kind === "weed");
+    btnWeed.classList.toggle("pulse-hint", weeds.length >= 3);
+  }
+
+  function spawnWeed() {
+    const weeds = state.entities.filter((e) => e.kind === "weed");
+    if (weeds.length >= 5) return;
+    const x = randRange(8, 86);
+    const y = randRange(6, 22);
+    addGardenEntity("weed", pickRandom(["🌿", "🌾"]), x, y);
+    updateWeedHint();
+  }
+
+  function spawnFlower() {
+    const flowers = state.entities.filter((e) => e.kind === "flower");
+    if (flowers.length >= 14) return;
+    const x = randRange(6, 86);
+    const y = randRange(5, 24);
+    addGardenEntity("flower", pickRandom(FLOWERS), x, y);
+  }
+
+  function initGarden() {
+    gardenEntities.innerHTML = "";
+    state.entities = [];
+
+    // 最初からひよこが1匹お散歩＆雑草が2本生えている
+    addGardenEntity("walker", "🐣", 26, 12);
+    spawnWeed();
+    spawnWeed();
+    updateGardenVisuals(0, false);
+  }
+
+  function updateGardenVisuals(score, animate = false) {
     scoreCount.textContent = String(score);
     if (animate) {
       triggerBounceClass(scoreBadge, "pop");
@@ -317,69 +455,144 @@
       treeSparkle.classList.add("active");
     }
 
-    // スコアに応じておにわの要素が次々登場・変化
-    const unlocks = [
-      { min: 1, el: toyFlowerL },
-      { min: 2, el: toyFlowerR },
-      { min: 3, el: toyButterfly },
-      { min: 4, el: toyBird },
-      { min: 5, el: toyRainbow },
-      { min: 6, el: toyRabbit },
-      { min: 7, el: toyBalloon },
-      { min: 8, el: toyCat },
-      { min: 9, el: toyDog },
-    ];
-
-    unlocks.forEach(({ min, el }) => {
-      if (score >= min) {
-        revealGardenToy(el, animate && score === min);
-      } else {
-        el.classList.add("hidden");
+    // 正解ごとのワールド変化
+    if (animate) {
+      if (score === 1) {
+        spawnFlower();
+      } else if (score === 2) {
+        addGardenEntity("walker", "🐰", 74, 14);
+      } else if (score === 3) {
+        addGardenEntity("flyer", "🦋", 20, 68);
+      } else if (score === 4) {
+        addGardenEntity("walker", "🐱", 18, 16);
+      } else if (score === 5) {
+        toyRainbow.classList.remove("hidden");
+        triggerBounceClass(toyRainbow, "boing");
+      } else if (score === 6) {
+        addGardenEntity("flyer", "🐦", 80, 74);
+      } else if (score === 7) {
+        addGardenEntity("walker", "🐶", 65, 10);
+      } else if (score === 8) {
+        toyBalloon.classList.remove("hidden");
+        triggerBounceClass(toyBalloon, "boing");
+      } else if (score === 9) {
+        addGardenEntity("flyer", "🐝", 45, 58);
+      } else if (score >= 10) {
+        const walkers = state.entities.filter((e) => e.kind === "walker");
+        if (score % 3 === 0 && walkers.length < 10) {
+          addGardenEntity("walker", pickRandom(EXTRA_ANIMALS), randRange(15, 85), randRange(8, 22));
+        } else {
+          spawnFlower();
+        }
       }
-    });
 
-    // 空の変化（10問以降は昼→虹→夕方→夜空がループ！）
-    gardenStage.classList.remove("sky-rainbow", "sky-sunset", "sky-night");
+      // 時々新しい雑草も生えてくる
+      if (score % 2 === 0) {
+        spawnWeed();
+      }
+    } else {
+      toyRainbow.classList.add("hidden");
+      toyBalloon.classList.add("hidden");
+    }
+
+    // 空の変化
+    gardenWorld.classList.remove("sky-rainbow", "sky-sunset", "sky-night");
     if (score >= 10) {
       const cycle = Math.floor((score - 10) / 3) % 4;
       if (cycle === 0) {
-        gardenStage.classList.add("sky-sunset");
+        gardenWorld.classList.add("sky-sunset");
         toySun.textContent = "🌇";
       } else if (cycle === 1) {
-        gardenStage.classList.add("sky-night");
+        gardenWorld.classList.add("sky-night");
         toySun.textContent = "🌙";
       } else if (cycle === 2) {
-        gardenStage.classList.add("sky-rainbow");
+        gardenWorld.classList.add("sky-rainbow");
         toySun.textContent = "☀️";
       } else {
         toySun.textContent = "☀️";
       }
     } else if (score >= 5) {
-      gardenStage.classList.add("sky-rainbow");
+      gardenWorld.classList.add("sky-rainbow");
       toySun.textContent = "☀️";
     } else {
       toySun.textContent = "☀️";
     }
   }
 
-  // --- Utilities ---
-  function shuffle(array) {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
+  // 生き物たちの自律移動ループ
+  let lastMoveTime = performance.now();
+  function tickGardenMovement(now) {
+    const dt = Math.min(0.05, (now - lastMoveTime) / 1000);
+    lastMoveTime = now;
 
-  function pickRandom(array) {
-    return array[Math.floor(Math.random() * array.length)];
-  }
+    const foods = state.entities.filter((e) => e.kind === "food");
 
-  function triggerBounceClass(el, className) {
-    el.classList.remove(className);
-    void el.offsetWidth;
-    el.classList.add(className);
+    state.entities.forEach((entity) => {
+      if (entity.kind !== "walker" && entity.kind !== "flyer") return;
+
+      // 歩く生き物は近くにエサがあれば駆け寄る！
+      let targetFood = null;
+      if (entity.kind === "walker" && foods.length > 0) {
+        let minDist = Infinity;
+        foods.forEach((f) => {
+          const d = Math.hypot(f.x - entity.x, f.y - entity.y);
+          if (d < minDist) {
+            minDist = d;
+            targetFood = f;
+          }
+        });
+      }
+
+      if (targetFood) {
+        entity.tx = targetFood.x;
+        entity.ty = targetFood.y;
+        entity.waitTimer = 0;
+      } else if (entity.waitTimer > 0) {
+        entity.waitTimer -= dt;
+        return;
+      }
+
+      const dx = entity.tx - entity.x;
+      const dy = entity.ty - entity.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (targetFood && dist < 4.5) {
+        // エサを食べる！
+        const rect = entity.el.getBoundingClientRect();
+        playEatSound();
+        triggerBounceClass(entity.el, "happy-jump");
+        spawnTapBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, {
+          count: 8,
+          symbols: ["♥", "😋", "✨"],
+          color: "#FF595E",
+        });
+        removeGardenEntity(targetFood);
+        entity.waitTimer = 0.7;
+        entity.tx = randRange(10, 88);
+        entity.ty = randRange(7, 25);
+        return;
+      }
+
+      if (dist < 2.2) {
+        // 目的地についたら少し休んで次の場所へ
+        entity.waitTimer = entity.kind === "flyer" ? randRange(0.1, 0.5) : randRange(0.6, 2.2);
+        entity.tx = randRange(8, 88);
+        entity.ty = entity.kind === "flyer" ? randRange(46, 86) : randRange(6, 25);
+        return;
+      }
+
+      const speed = targetFood ? 28 : entity.kind === "flyer" ? 18 : 11;
+      const step = speed * dt;
+      entity.x += (dx / dist) * step;
+      entity.y += (dy / dist) * step;
+
+      entity.el.style.left = `${entity.x}%`;
+      entity.el.style.bottom = `${entity.y}%`;
+      // 進行方向に合わせて向きを変える
+      entity.el.style.transform = dx < -0.2 ? "scaleX(1)" : "scaleX(-1)";
+    });
+
+    requestAnimationFrame(tickGardenMovement);
   }
 
   // --- Particle & Confetti Canvas ---
@@ -498,7 +711,7 @@
     }
   }
 
-  // --- Unified Question Generation (いろ / かたち / いろ＋かたち) ---
+  // --- Unified Question Generation ---
   function buildQuestion() {
     const kind = pickRandom(["color", "shape", "mix"]);
 
@@ -737,10 +950,10 @@
 
       if (isMilestone) {
         playMilestoneSound();
-        launchConfetti(95);
+        launchConfetti(90);
       } else {
         playSuccessSound();
-        launchConfetti(35);
+        launchConfetti(32);
       }
 
       if (x && y) {
@@ -752,11 +965,11 @@
       feedbackBubble.classList.remove("hidden");
       speak(praise.text);
 
-      updateGarden(state.score, true);
+      updateGardenVisuals(state.score, true);
 
       setTimeout(() => {
         loadNextQuestion();
-      }, 1300);
+      }, 1250);
     } else {
       playGentleTryAgainSound();
       triggerBounceClass(card, "wrong-shake");
@@ -764,8 +977,71 @@
     }
   }
 
-  // --- Interactive Gimmicks ---
-  // 背景の浮遊おもちゃタップ
+  // --- Care Toolbar Gimmicks (水やり・エサやり・雑草とり) ---
+  btnWater.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    ensureAudioContext();
+    playWaterSound();
+    triggerBounceClass(treeVisual, "wiggle-anim");
+    gardenWorld.classList.add("watered");
+    setTimeout(() => gardenWorld.classList.remove("watered"), 900);
+
+    // おにわ全体に雨シャワー
+    const rect = gardenWorld.getBoundingClientRect();
+    for (let i = 0; i < 4; i++) {
+      spawnTapBurst(rect.left + rect.width * (0.2 + i * 0.2), rect.top + 30, {
+        count: 6,
+        symbols: ["💧", "🩵", "✨"],
+        color: "#1982C4",
+        fallDown: true,
+      });
+    }
+
+    // 影響：お花が咲く＆動物たちも喜ぶ！
+    spawnFlower();
+    state.entities.forEach((ent) => {
+      if (ent.kind === "walker" || ent.kind === "flyer") {
+        triggerBounceClass(ent.el, "happy-jump");
+      }
+    });
+  });
+
+  btnFeed.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    ensureAudioContext();
+    playTapSound();
+
+    const foods = state.entities.filter((ent) => ent.kind === "food");
+    if (foods.length < 5) {
+      addGardenEntity("food", pickRandom(FOODS), randRange(14, 82), randRange(8, 22));
+    }
+    spawnTapBurst(e.clientX, e.clientY, {
+      count: 6,
+      symbols: ["🍎", "✨"],
+      color: "#FF595E",
+    });
+  });
+
+  btnWeed.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    ensureAudioContext();
+    const weeds = state.entities.filter((ent) => ent.kind === "weed" && !ent.plucked);
+    if (weeds.length > 0) {
+      const target = weeds[0];
+      const rect = target.el.getBoundingClientRect();
+      pluckWeed(target, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    } else {
+      // 雑草がない時はおにわにキラキラお掃除風
+      playChimeArpeggio();
+      spawnTapBurst(e.clientX, e.clientY, {
+        count: 8,
+        symbols: ["✨", "🌸", "🌿"],
+        color: "#8AC926",
+      });
+    }
+  });
+
+  // --- Sky & Background Gimmicks ---
   document.querySelectorAll(".bg-toy").forEach((toy, idx) => {
     toy.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
@@ -779,25 +1055,19 @@
     });
   });
 
-  // お題枠タップでジャンプ＆音声再生
   targetSlot.addEventListener("pointerdown", (e) => {
     if (e.target === btnSpeak) return;
     e.stopPropagation();
     ensureAudioContext();
     triggerBounceClass(targetSlot, "boing");
     playTapSound();
-    spawnTapBurst(e.clientX, e.clientY, {
-      count: 7,
-      symbols: ["✨", "🎵"],
-    });
+    spawnTapBurst(e.clientX, e.clientY, { count: 7, symbols: ["✨", "🎵"] });
     if (state.currentQuestion) {
       speak(state.currentQuestion.prompt);
     }
   });
 
-  // おにわステージ（木）タップで揺れて葉っぱ・花・実が舞う
-  gardenStage.addEventListener("pointerdown", (e) => {
-    if (e.target.closest(".stage-toy")) return;
+  treeWrap.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
     ensureAudioContext();
     triggerBounceClass(treeVisual, "wiggle-anim");
@@ -817,7 +1087,6 @@
     });
   });
 
-  // おひさま／おつきさまタップ
   toySun.addEventListener("pointerdown", (e) => {
     e.stopPropagation();
     ensureAudioContext();
@@ -830,51 +1099,48 @@
     });
   });
 
-  // くもタップで雨粒シャワー＆木が喜ぶ
-  toyCloud.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
-    triggerBounceClass(toyCloud, "boing");
-    triggerBounceClass(treeVisual, "wiggle-anim");
-    playRainSound();
-    spawnTapBurst(e.clientX, e.clientY + 12, {
-      count: 10,
-      symbols: ["💧", "🩵", "✨"],
-      color: "#1982C4",
-      fallDown: true,
+  [toyCloud1, toyCloud2].forEach((cloud) => {
+    cloud.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      ensureAudioContext();
+      triggerBounceClass(cloud, "boing");
+      playWaterSound();
+      spawnTapBurst(e.clientX, e.clientY + 12, {
+        count: 8,
+        symbols: ["💧", "🩵", "✨"],
+        color: "#1982C4",
+        fallDown: true,
+      });
     });
   });
 
-  // おにわに登場した仲間・アイテムのタップ反応
-  const gardenToyEffects = [
-    { el: toyRainbow, symbols: ["🌈", "✨", "💛", "💙"], color: "#FFCA3A", note: 5 },
-    { el: toyBalloon, symbols: ["🎈", "🎉", "✨"], color: "#FF595E", note: 4 },
-    { el: toyButterfly, symbols: ["🦋", "🌸", "✨"], color: "#9B5DE5", note: 3 },
-    { el: toyBird, symbols: ["🐦", "🎵", "🎶"], color: "#1982C4", note: 2 },
-    { el: toyFlowerL, symbols: ["🌷", "🌸", "✨"], color: "#FF9EBB", note: 1 },
-    { el: toyFlowerR, symbols: ["🌼", "🌻", "✨"], color: "#FFCA3A", note: 0 },
-    { el: toyRabbit, symbols: ["🐰", "🥕", "♥"], color: "#FF924C", note: 2 },
-    { el: toyCat, symbols: ["🐱", "🐾", "♥"], color: "#FFCA3A", note: 4 },
-    { el: toyDog, symbols: ["🐶", "🦴", "♥"], color: "#8AC926", note: 3 },
-  ];
+  toyRainbow.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    ensureAudioContext();
+    playPentatonicNote(5);
+    triggerBounceClass(toyRainbow, "boing");
+    spawnTapBurst(e.clientX, e.clientY, {
+      count: 10,
+      symbols: ["🌈", "✨", "💛", "💙"],
+      color: "#FFCA3A",
+    });
+  });
 
-  gardenToyEffects.forEach(({ el, symbols, color, note }) => {
-    el.addEventListener("pointerdown", (e) => {
-      e.stopPropagation();
-      ensureAudioContext();
-      playPentatonicNote(note);
-      triggerBounceClass(el, "boing");
-      spawnTapBurst(e.clientX, e.clientY, {
-        count: 8,
-        symbols,
-        color,
-      });
+  toyBalloon.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+    ensureAudioContext();
+    playPentatonicNote(4);
+    triggerBounceClass(toyBalloon, "boing");
+    spawnTapBurst(e.clientX, e.clientY, {
+      count: 8,
+      symbols: ["🎈", "🎉", "✨"],
+      color: "#FF595E",
     });
   });
 
   // 画面のどこ（余白）をタップしても音とキラキラが出る！
   document.addEventListener("pointerdown", (e) => {
-    if (!(e.target instanceof Element) || e.target.closest("button, .target-slot, .garden-stage")) return;
+    if (!(e.target instanceof Element) || e.target.closest("button, .target-slot, .tree-wrap")) return;
     ensureAudioContext();
     playPentatonicNote(Math.floor(Math.random() * PENTATONIC.length));
     spawnTapBurst(e.clientX, e.clientY, {
@@ -888,7 +1154,7 @@
     ensureAudioContext();
     playTapSound();
     state.score = 0;
-    updateGarden(0, false);
+    initGarden();
     loadNextQuestion();
   });
 
@@ -914,7 +1180,13 @@
     }
   });
 
+  // 定期的に雑草が少し生える（15秒ごと）
+  setInterval(() => {
+    spawnWeed();
+  }, 15000);
+
   // --- Start immediately ---
-  updateGarden(0, false);
+  initGarden();
   loadNextQuestion();
+  requestAnimationFrame(tickGardenMovement);
 })();
