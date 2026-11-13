@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>いろと かたち あそび｜3さいからの ちいくゲーム</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- 背景のふわふわ装飾 -->
+    <div class="bg-decorations" aria-hidden="true">
+      <span class="bg-shape bg-circle"></span>
+      <span class="bg-shape bg-triangle"></span>
+      <span class="bg-shape bg-star"></span>
+      <span class="bg-shape bg-heart"></span>
+    </div>
+
+    <!-- 紙吹雪用キャンバス -->
+    <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+    <!-- トップバー -->
+    <header class="top-bar">
+      <button id="btn-home" class="icon-btn hidden" type="button" aria-label="さいしょに もどる">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
+          <path d="M12 3L2 12h3v8h6v-5h2v5h6v-8h3L12 3z" />
+        </svg>
+        <span class="btn-label">もどる</span>
+      </button>
+
+      <div id="progress-stars" class="progress-stars hidden" aria-label="しんちょく">
+        <!-- JSで5つの星を生成 -->
+      </div>
+
+      <button id="btn-sound" class="icon-btn sound-on" type="button" aria-label="おとの オン・オフ">
+        <svg id="icon-sound-on" viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
+          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+        </svg>
+        <svg id="icon-sound-off" class="hidden" viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true">
+          <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+        </svg>
+        <span class="btn-label" id="sound-label">おと あり</span>
+      </button>
+    </header>
+
+    <!-- ホーム画面 -->
+    <main id="screen-home" class="screen active">
+      <div class="hero-section">
+        <div class="hero-badges" aria-hidden="true">
+          <span class="hero-dot" style="background: #ff595e;"></span>
+          <span class="hero-dot" style="background: #ffca3a;"></span>
+          <span class="hero-dot" style="background: #8ac926;"></span>
+          <span class="hero-dot" style="background: #1982c4;"></span>
+        </div>
+        <h1 class="app-title">いろと かたち あそび</h1>
+        <p class="app-subtitle">おなじ ものを タッチしてね！</p>
+      </div>
+
+      <div class="mode-grid">
+        <button class="mode-card mode-color" data-mode="color" type="button">
+          <div class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="76" height="76">
+              <circle cx="34" cy="36" r="22" fill="#FF595E" />
+              <circle cx="66" cy="36" r="22" fill="#FFCA3A" />
+              <circle cx="50" cy="64" r="22" fill="#1982C4" />
+            </svg>
+          </div>
+          <div class="mode-text">
+            <h2>いろあわせ</h2>
+            <p>おなじ いろは どれかな？</p>
+          </div>
+        </button>
+
+        <button class="mode-card mode-shape" data-mode="shape" type="button">
+          <div class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="76" height="76">
+              <circle cx="30" cy="34" r="18" fill="#8AC926" />
+              <polygon points="70,16 88,50 52,50" fill="#FF924C" />
+              <rect x="33" y="56" width="34" height="34" rx="6" fill="#6A4C93" />
+            </svg>
+          </div>
+          <div class="mode-text">
+            <h2>かたちあわせ</h2>
+            <p>おなじ かたちは どれかな？</p>
+          </div>
+        </button>
+
+        <button class="mode-card mode-mix" data-mode="mix" type="button">
+          <div class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 100 100" width="76" height="76">
+              <path d="M50 12 L61 36 L88 39 L68 57 L73 84 L50 71 L27 84 L32 57 L12 39 L39 36 Z" fill="#FFCA3A" stroke="#FF924C" stroke-width="4" stroke-linejoin="round" />
+              <circle cx="42" cy="48" r="3.5" fill="#333" />
+              <circle cx="58" cy="48" r="3.5" fill="#333" />
+              <path d="M44 58 Q50 64 56 58" fill="none" stroke="#333" stroke-width="3" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="mode-text">
+            <h2>いろと かたち</h2>
+            <p>ふたつ いっしょに みつけよう！</p>
+          </div>
+        </button>
+      </div>
+    </main>
+
+    <!-- ゲーム画面 -->
+    <main id="screen-game" class="screen">
+      <div class="question-area">
+        <button id="btn-speak" class="question-banner" type="button" aria-label="もういちど きく">
+          <span class="speak-icon" aria-hidden="true">🔊</span>
+          <span id="question-text" class="question-text">あか は どれかな？</span>
+        </button>
+
+        <!-- お題見本 / ドロップターゲット -->
+        <div id="target-slot" class="target-slot" aria-live="polite">
+          <div id="target-visual" class="target-visual"></div>
+        </div>
+      </div>
+
+      <!-- ほめ言葉ポップアップ -->
+      <div id="feedback-bubble" class="feedback-bubble hidden" aria-live="assertive">
+        <span id="feedback-emoji" class="feedback-emoji">🎉</span>
+        <span id="feedback-text" class="feedback-text">やったね！</span>
+      </div>
+
+      <!-- 選択肢カード -->
+      <div id="choices-grid" class="choices-grid">
+        <!-- JSでカードを生成 -->
+      </div>
+    </main>
+
+    <!-- クリア（ごほうび）画面 -->
+    <main id="screen-clear" class="screen">
+      <div class="clear-card">
+        <div class="medal-wrap" aria-hidden="true">
+          <svg viewBox="0 0 120 120" width="130" height="130" class="medal-svg">
+            <path d="M36 72 L24 112 L46 102 L56 116 L60 76 Z" fill="#FF595E" />
+            <path d="M84 72 L96 112 L74 102 L64 116 L60 76 Z" fill="#1982C4" />
+            <circle cx="60" cy="48" r="36" fill="#FFCA3A" stroke="#FF924C" stroke-width="5" />
+            <path d="M60 22 L67 38 L84 40 L71 51 L75 68 L60 59 L45 68 L49 51 L36 40 L53 38 Z" fill="#FFFDF5" />
+          </svg>
+        </div>
+        <h2 class="clear-title">すごい！ ぜんぶ できたね！</h2>
+        <p class="clear-subtitle">キラキラ メダルを ゲットしたよ！</p>
+        <div class="clear-actions">
+          <button id="btn-replay" class="action-btn primary" type="button">もういちど あそぶ</button>
+          <button id="btn-choose-mode" class="action-btn secondary" type="button">ちがう あそびを する</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
