@@ -594,6 +594,7 @@
   function attachCardInteractions(card, choice) {
     let startX = 0;
     let startY = 0;
+    let isPointerActive = false;
     let isDragging = false;
     let ghost = null;
 
@@ -602,12 +603,15 @@
       ensureAudioContext();
       startX = e.clientX;
       startY = e.clientY;
+      isPointerActive = true;
       isDragging = false;
-      card.setPointerCapture(e.pointerId);
+      try {
+        card.setPointerCapture(e.pointerId);
+      } catch (_) {}
     });
 
     card.addEventListener("pointermove", (e) => {
-      if (state.isTransitioning || !card.hasPointerCapture(e.pointerId)) return;
+      if (state.isTransitioning || !isPointerActive) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
 
@@ -639,8 +643,13 @@
     });
 
     const finishPointer = (e) => {
-      if (!card.hasPointerCapture(e.pointerId)) return;
-      card.releasePointerCapture(e.pointerId);
+      if (!isPointerActive) return;
+      isPointerActive = false;
+      try {
+        if (card.hasPointerCapture(e.pointerId)) {
+          card.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
       card.classList.remove("dragging");
       targetSlot.classList.remove("drag-over");
 
@@ -649,7 +658,7 @@
         ghost = null;
       }
 
-      if (state.isTransitioning) return;
+      if (state.isTransitioning || e.type === "pointercancel") return;
 
       if (isDragging) {
         const targetRect = targetSlot.getBoundingClientRect();
@@ -858,7 +867,7 @@
 
   // 8. 画面のどこ（余白）をタップしても音とキラキラが出る！
   document.addEventListener("pointerdown", (e) => {
-    if (e.target.closest("button, .target-slot, .tree-stage")) return;
+    if (!(e.target instanceof Element) || e.target.closest("button, .target-slot, .tree-stage")) return;
     ensureAudioContext();
     playPentatonicNote(Math.floor(Math.random() * PENTATONIC.length));
     spawnTapBurst(e.clientX, e.clientY, {

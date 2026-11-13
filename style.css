@@ -156,6 +156,7 @@ body {
 
 /* トップバー */
 .top-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -227,6 +228,7 @@ body {
 
 /* 画面切り替え */
 .screen {
+  position: relative;
   display: none;
   flex: 1;
   min-height: 0;
