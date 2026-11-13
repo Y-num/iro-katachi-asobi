@@ -977,28 +977,114 @@
     }
   }
 
-  // --- Care Toolbar Gimmicks (水やり・エサやり・雑草とり) ---
-  btnWater.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
+  // --- Care Toolbar Gimmicks (スワイプで任意の場所にドロップ) ---
+  function attachCareDrag(btn, getGhostSymbol, onDropInGarden) {
+    let startX = 0;
+    let startY = 0;
+    let isPointerActive = false;
+    let isDragging = false;
+    let ghost = null;
+    let currentSymbol = "";
+
+    btn.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      ensureAudioContext();
+      startX = e.clientX;
+      startY = e.clientY;
+      isPointerActive = true;
+      isDragging = false;
+      currentSymbol = getGhostSymbol();
+      try {
+        btn.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
+
+    btn.addEventListener("pointermove", (e) => {
+      if (!isPointerActive) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (!isDragging && Math.hypot(dx, dy) > 10) {
+        isDragging = true;
+        ghost = document.createElement("div");
+        ghost.className = "care-ghost";
+        ghost.textContent = currentSymbol;
+        document.body.appendChild(ghost);
+      }
+
+      if (isDragging && ghost) {
+        ghost.style.left = `${e.clientX}px`;
+        ghost.style.top = `${e.clientY}px`;
+
+        const rect = gardenWorld.getBoundingClientRect();
+        const isInside =
+          e.clientX >= rect.left - 12 &&
+          e.clientX <= rect.right + 12 &&
+          e.clientY >= rect.top - 12 &&
+          e.clientY <= rect.bottom + 12;
+        gardenWorld.classList.toggle("drop-ready", isInside);
+      }
+    });
+
+    const finishCarePointer = (e) => {
+      if (!isPointerActive) return;
+      isPointerActive = false;
+      gardenWorld.classList.remove("drop-ready");
+      try {
+        if (btn.hasPointerCapture(e.pointerId)) {
+          btn.releasePointerCapture(e.pointerId);
+        }
+      } catch (_) {}
+
+      if (ghost) {
+        ghost.remove();
+        ghost = null;
+      }
+
+      if (e.type === "pointercancel") return;
+
+      if (isDragging) {
+        const rect = gardenWorld.getBoundingClientRect();
+        const isInside =
+          e.clientX >= rect.left - 12 &&
+          e.clientX <= rect.right + 12 &&
+          e.clientY >= rect.top - 12 &&
+          e.clientY <= rect.bottom + 12;
+
+        if (isInside) {
+          const pctX = Math.max(6, Math.min(90, ((e.clientX - rect.left) / rect.width) * 100));
+          const pctBottom = Math.max(6, Math.min(25, ((rect.bottom - e.clientY) / rect.height) * 100));
+          onDropInGarden(e.clientX, e.clientY, pctX, pctBottom, currentSymbol);
+        }
+      } else {
+        // タップ時は跳ねて音だけ鳴らす（スワイプで持っていける合図）
+        playTapSound();
+        triggerBounceClass(btn, "boing");
+      }
+    };
+
+    btn.addEventListener("pointerup", finishCarePointer);
+    btn.addEventListener("pointercancel", finishCarePointer);
+  }
+
+  // 💧 みずやり：ドロップした場所に雨を降らせてお花を咲かせる
+  attachCareDrag(btnWater, () => "💧", (cx, cy, pctX, pctBottom) => {
     playWaterSound();
     triggerBounceClass(treeVisual, "wiggle-anim");
     gardenWorld.classList.add("watered");
     setTimeout(() => gardenWorld.classList.remove("watered"), 900);
 
-    // おにわ全体に雨シャワー
-    const rect = gardenWorld.getBoundingClientRect();
-    for (let i = 0; i < 4; i++) {
-      spawnTapBurst(rect.left + rect.width * (0.2 + i * 0.2), rect.top + 30, {
-        count: 6,
-        symbols: ["💧", "🩵", "✨"],
-        color: "#1982C4",
-        fallDown: true,
-      });
-    }
+    spawnTapBurst(cx, Math.max(cy - 20, gardenWorld.getBoundingClientRect().top + 20), {
+      count: 12,
+      symbols: ["💧", "🩵", "✨"],
+      color: "#1982C4",
+      fallDown: true,
+    });
 
-    // 影響：お花が咲く＆動物たちも喜ぶ！
-    spawnFlower();
+    const flowers = state.entities.filter((e) => e.kind === "flower");
+    if (flowers.length < 14) {
+      addGardenEntity("flower", pickRandom(FLOWERS), pctX, pctBottom);
+    }
     state.entities.forEach((ent) => {
       if (ent.kind === "walker" || ent.kind === "flyer") {
         triggerBounceClass(ent.el, "happy-jump");
@@ -1006,34 +1092,39 @@
     });
   });
 
-  btnFeed.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
+  // 🍎 えさやり：ドロップした任意の場所にエサを落とす
+  attachCareDrag(btnFeed, () => pickRandom(FOODS), (cx, cy, pctX, pctBottom, symbol) => {
     playTapSound();
-
     const foods = state.entities.filter((ent) => ent.kind === "food");
-    if (foods.length < 5) {
-      addGardenEntity("food", pickRandom(FOODS), randRange(14, 82), randRange(8, 22));
+    if (foods.length >= 6) {
+      removeGardenEntity(foods[0]);
     }
-    spawnTapBurst(e.clientX, e.clientY, {
-      count: 6,
-      symbols: ["🍎", "✨"],
+    addGardenEntity("food", symbol, pctX, pctBottom);
+    spawnTapBurst(cx, cy, {
+      count: 7,
+      symbols: [symbol, "✨"],
       color: "#FF595E",
     });
   });
 
-  btnWeed.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    ensureAudioContext();
+  // 🌿 ざっそうとり：ドロップした場所の近くの雑草を抜く
+  attachCareDrag(btnWeed, () => "🌿", (cx, cy, pctX, pctBottom) => {
     const weeds = state.entities.filter((ent) => ent.kind === "weed" && !ent.plucked);
     if (weeds.length > 0) {
-      const target = weeds[0];
-      const rect = target.el.getBoundingClientRect();
-      pluckWeed(target, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      let nearest = weeds[0];
+      let minDist = Infinity;
+      weeds.forEach((w) => {
+        const d = Math.hypot(w.x - pctX, w.y - pctBottom);
+        if (d < minDist) {
+          minDist = d;
+          nearest = w;
+        }
+      });
+      const wRect = nearest.el.getBoundingClientRect();
+      pluckWeed(nearest, wRect.left + wRect.width / 2, wRect.top + wRect.height / 2);
     } else {
-      // 雑草がない時はおにわにキラキラお掃除風
       playChimeArpeggio();
-      spawnTapBurst(e.clientX, e.clientY, {
+      spawnTapBurst(cx, cy, {
         count: 8,
         symbols: ["✨", "🌸", "🌿"],
         color: "#8AC926",
